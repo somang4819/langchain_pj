@@ -22,10 +22,10 @@ def initchain():
         print(f"설정 오류: {e}")
 
 class AnalyzeStockItemByOne(BaseModel):
-    market: MarketIndicator
+    market: MarketIndicator = MarketIndicator()
 
     # 생성자 (객체 초기화)
-    def __init__(self):
+    def model_post_init(self, __context):
         self.get_market_indicators()
 
     def get_market_indicators(self):    # 야후 파이낸스 주요 지수 
@@ -44,27 +44,27 @@ class AnalyzeStockItemByOne(BaseModel):
         self.market.cpi=cpi
         self.market.usd_krw=usd_krw
     
-    def get_valuation_metrics(symbol):
-        import yfinance as yf
+    # def get_valuation_metrics(symbol):
+    #     import yfinance as yf
 
-        t = yf.Ticker(symbol)
-        info = t.info
-        fin = t.financials
-        bal = t.balance_sheet
-        # cf = t.cashflow
+    #     t = yf.Ticker(symbol)
+    #     info = t.info
+    #     fin = t.financials
+    #     bal = t.balance_sheet
+    #     # cf = t.cashflow
 
-        # fcf = cf.loc["Free Cash Flow"].iloc[0]
-        revenue = fin.loc["Total Revenue"]
-        op_income = fin.loc["Operating Income"].iloc[0]
+    #     # fcf = cf.loc["Free Cash Flow"].iloc[0]
+    #     revenue = fin.loc["Total Revenue"]
+    #     op_income = fin.loc["Operating Income"].iloc[0]
 
-        revenue_growth = (revenue.iloc[0] - revenue.iloc[1]) / revenue.iloc[1]
-        operating_margin = op_income / revenue.iloc[0]
+    #     revenue_growth = (revenue.iloc[0] - revenue.iloc[1]) / revenue.iloc[1]
+    #     operating_margin = op_income / revenue.iloc[0]
 
-        ev_ebitda = info.get("enterpriseToEbitda")
+    #     ev_ebitda = info.get("enterpriseToEbitda")
 
-        return {
-            # "fcf": fcf,
-            "revenue_growth": revenue_growth,
-            "operating_margin": operating_margin,
-            "ev_ebitda": ev_ebitda,
-        }
+    #     return {
+    #         # "fcf": fcf,
+    #         "revenue_growth": revenue_growth,
+    #         "operating_margin": operating_margin,
+    #         "ev_ebitda": ev_ebitda,
+    #     }

@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import List
+from pydantic import BaseModel,ConfigDict
+from typing import List, Optional
 import pandas as pd
 
 class StockItem(BaseModel):
@@ -24,12 +24,10 @@ class ETFIndicator(BaseModel):
     holdings: List[StockIndicator]   # 여러 종목을 담는 리스트
 
 class MarketIndicator(BaseModel):
-    sp500: pd.DataFrame
-    vix: pd.DataFrame
-    cpi: pd.Series
-    usd_krw: pd.DataFrame
+    sp500: Optional[pd.DataFrame] = None
+    vix: Optional[pd.DataFrame] = None
+    cpi: Optional[pd.Series] = None
+    usd_krw: Optional[pd.DataFrame] = None
 
-    # arbitrary_types_allowed 옵션, Pydantic이 Pandas 객체를 검증 없이 받아들임.
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
