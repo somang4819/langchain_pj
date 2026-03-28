@@ -39,9 +39,32 @@ class AnalyzeStockItemByOne(BaseModel):
         fred = Fred(api_key="7679fe95133779dd18e1cc61b0a16079")
         cpi = fred.get_series("cpiaucsl")
 
-        return MarketIndicator(
-            sp500=sp500,
-            vix=vix,
-            cpi=cpi,
-            usd_krw=usd_krw,
-        )
+        self.market.sp500=sp500
+        self.market.vix=vix
+        self.market.cpi=cpi
+        self.market.usd_krw=usd_krw
+    
+    def get_valuation_metrics(symbol):
+        import yfinance as yf
+
+        t = yf.Ticker(symbol)
+        info = t.info
+        fin = t.financials
+        bal = t.balance_sheet
+        # cf = t.cashflow
+
+        # fcf = cf.loc["Free Cash Flow"].iloc[0]
+        revenue = fin.loc["Total Revenue"]
+        op_income = fin.loc["Operating Income"].iloc[0]
+
+        revenue_growth = (revenue.iloc[0] - revenue.iloc[1]) / revenue.iloc[1]
+        operating_margin = op_income / revenue.iloc[0]
+
+        ev_ebitda = info.get("enterpriseToEbitda")
+
+        return {
+            # "fcf": fcf,
+            "revenue_growth": revenue_growth,
+            "operating_margin": operating_margin,
+            "ev_ebitda": ev_ebitda,
+        }
