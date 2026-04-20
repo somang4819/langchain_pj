@@ -34,10 +34,7 @@ def initchain():
     except Exception as e:
         print(f"설정 오류: {e}")
 
-class AnalyzeStockItemByOne(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-    market: MarketIndicator = MarketIndicator()
-    stock_indicator_list: StockIndicatorList = StockIndicatorList(name="", ticker="", holdings=[]) 
+class AnalyzeStockItemByOne():
     ticker: str = "" 
     etf_client: Any = ETF
 
@@ -87,14 +84,7 @@ class AnalyzeStockItemByOne(BaseModel):
         ev_ebitda = str(info.get("enterpriseToEbitda", "N/A"))
 
         # 계산된 수치들을 StockIndicator 모델의 str 타입에 맞게 변환하여 반환
-        return StockIndicator(
-            name=info.get("longName", symbol),
-            ticker=symbol,
-            revenue_growth=revenue_growth,
-            operating_margin=operating_margin,
-            ev_ebitda=ev_ebitda,
-            weight="0"  # 가중치는 추후 계산 로직에 따라 설정
-        )
+        return
     
     def is_etf(self):
         """ticker가 ETF인지 확인"""
@@ -106,11 +96,7 @@ class AnalyzeStockItemByOne(BaseModel):
     def get_valuation_metrics_all(self):    
         # 1단계: ETF 여부 확인
         if not self.is_etf():
-            return StockIndicatorList(
-                name="",
-                ticker=self.ticker,
-                holdings=[]
-            )
+            return
         
         try:
             # 2단계: ETF 비중 정보 가져오기 
@@ -127,11 +113,7 @@ class AnalyzeStockItemByOne(BaseModel):
             logger.error(f"Failed to fetch ETF data for {self.ticker}: {e}")
             return {"error": "ETF 데이터를 가져올 수 없습니다"}
 
-        return StockIndicatorList(
-            name=self.ticker,
-            ticker=self.ticker,
-            holdings=[]
-        )
+
     
     async def crawl_naver_etf_holdings(self):
         from playwright.async_api import async_playwright
@@ -170,9 +152,9 @@ class AnalyzeStockItemByOne(BaseModel):
                         # value 추출 (span 태그)
                         value = await li.locator(".RatioBarInfo_ratio__bw-p-").text_content()
                         
-                        if key and value:
-                            stockElm=StockIndicator(name=key,weight=value, ticker=self.get_ticker_from_name(key))
-                            self.stock_indicator_list.holdings.append(stockElm)
+#                        if key and value:
+#                            stockElm=StockIndicator(name=key,weight=value, ticker=self.get_ticker_from_name(key))
+#                            self.stock_indicator_list.holdings.append(stockElm)
                 
                 print(self.stock_indicator_list)
             except Exception as e:
@@ -182,7 +164,7 @@ class AnalyzeStockItemByOne(BaseModel):
             
             await browser.close()
 
-    async def crawl_naver_stockinfobyone(self, stockinfo: StockIndicator):
+    async def crawl_naver_stockinfobyone(self):
         from playwright.async_api import async_playwright
         import pandas as pd
 
@@ -206,7 +188,7 @@ class AnalyzeStockItemByOne(BaseModel):
             browser = await p.chromium.launch()
             page = await browser.new_page()
             
-            await page.goto(f"https://m.stock.naver.com/domestic/stock/{stockinfo.ticker}/total", wait_until="networkidle")
+            await page.goto(f"https://m.stock.naver.com/domestic/stock/005930/total", wait_until="networkidle")
             await page.wait_for_timeout(500)
             
             try:
@@ -238,12 +220,12 @@ class AnalyzeStockItemByOne(BaseModel):
                         if key and value:
                             print(f"키: {key}, 값: {value}")
                             field_name = KEY_TO_FIELD_MAP.get(key)
-                            if field_name:
-                                setattr(stockinfo, field_name, value)
+#                            if field_name:
+#                                setattr(stockinfo, field_name, value)
                             
                             #stockElm=StockIndicator(name=key,weight=value, ticker=self.get_ticker_from_name(key))
                             #self.stock_indicator_list.holdings.append(stockElm)
-                print(stockinfo)
+ #               print(stockinfo)
             except Exception as e:
                 print(f"❌ 에러: {e}")
                 import traceback
