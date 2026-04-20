@@ -30,8 +30,12 @@ async def create_item(item: Item):
 
 @app.post("/analyze-stock-items/")
 async def create_stock_items(items: List[StockItem]):
+    import asyncio
+    # 종목 당 분석 수행Y
 
-    # 종목 당 분석 수행
-    analyzer = AnalyzeStockItemByOne()
+    analyzer = AnalyzeStockItemByOne(ticker="SPY")
+    #analyzer.get_valuation_metrics_all()
+    #await analyzer.crawl_naver_etf_holdings()
+    await analyzer.crawl_naver_stockinfobyone(StockIndicator(name="삼성전자", ticker="005930"))
 
     return {"received": len(items), "items": items}
