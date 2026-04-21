@@ -5,8 +5,9 @@
 # 5. 체인 호출
 
 from yfinance import ticker
-
 from models import *
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from etfpy import ETF
 from typing import Any
 import logging
@@ -34,11 +35,13 @@ def initchain():
     except Exception as e:
         print(f"설정 오류: {e}")
 
-class AnalyzeStockItemByOne():
-    ticker: str = "" 
+class AnalyzeStockItemByOne:
     etf_client: Any = ETF
 
-    # 생성자 (객체 초기화)
+    def __init__(self, ticker: str = ""):
+        self.ticker = ticker
+        self.market = type('Market', (), {})()
+
     def model_post_init(self, __context):
         if self.ticker:
             self.get_market_indicators()
@@ -112,8 +115,6 @@ class AnalyzeStockItemByOne():
         except Exception as e:
             logger.error(f"Failed to fetch ETF data for {self.ticker}: {e}")
             return {"error": "ETF 데이터를 가져올 수 없습니다"}
-
-
     
     async def crawl_naver_etf_holdings(self):
         from playwright.async_api import async_playwright
@@ -164,7 +165,7 @@ class AnalyzeStockItemByOne():
             
             await browser.close()
 
-    async def crawl_naver_stockinfobyone(self):
+    async def crawl_naver_stockinfobyone_naver(self, db: AsyncSession):
         from playwright.async_api import async_playwright
         import pandas as pd
 
@@ -188,12 +189,13 @@ class AnalyzeStockItemByOne():
             browser = await p.chromium.launch()
             page = await browser.new_page()
             
+            # Use self.ticker for the URL
             await page.goto(f"https://m.stock.naver.com/domestic/stock/005930/total", wait_until="networkidle")
             await page.wait_for_timeout(500)
             
             try:
-                # StockInfo_list__V96U6 클래스의 모든 ul 찾기
-                ul_list = page.locator(".StockInfo_article__iOMzt StockInfo_isActive__xK9e1")
+                scraped_data = {}
+                ul_list = page.locator(".StockInfo_list__V96U6")
                 ul_count = await ul_list.count()
                 print(f"📊 발견된 ul 개수: {ul_count}\n")
                 
@@ -202,7 +204,7 @@ class AnalyzeStockItemByOne():
                 # 각 ul 요소를 순회
                 for ul_index in range(ul_count):
                     ul_locator = ul_list.nth(ul_index)
-                    li_elements = ul_locator.locator("li")
+                    li_elements = ul_locator.locator("li.StockInfo_item__puHWj")
                     li_count = await li_elements.count()
                     
                     stock_info = []
@@ -220,12 +222,26 @@ class AnalyzeStockItemByOne():
                         if key and value:
                             print(f"키: {key}, 값: {value}")
                             field_name = KEY_TO_FIELD_MAP.get(key)
-#                            if field_name:
-#                                setattr(stockinfo, field_name, value)
-                            
-                            #stockElm=StockIndicator(name=key,weight=value, ticker=self.get_ticker_from_name(key))
-                            #self.stock_indicator_list.holdings.append(stockElm)
- #               print(stockinfo)
+                            if field_name:
+                                scraped_data[field_name] = value
+
+                if scraped_data:
+                    # DB에서 해당 ticker 조회
+                    stmt = select(StockIndicatorTable).where(StockIndicatorTable.ticker == self.ticker)
+                    result = await db.execute(stmt)
+                    stock_record = result.scalars().first()
+
+                    if not stock_record:
+                        # 없으면 새로 생성
+                        stock_record = StockIndicatorTable(ticker=self.ticker)
+                        db.add(stock_record)
+                    
+                    # 필드 업데이트 (있으면 업데이트, 없으면 신규 생성된 객체에 값 할당)
+                    for field, val in scraped_data.items():
+                        setattr(stock_record, field, val)
+                    
+                    await db.commit()
+                    print(f" {self.ticker} 데이터 저장/업데이트 완료")
             except Exception as e:
                 print(f"❌ 에러: {e}")
                 import traceback

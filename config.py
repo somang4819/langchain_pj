@@ -11,16 +11,15 @@ env_path = Path(__file__).parent / ".env"
 class Settings(BaseSettings):
     # ==================== 데이터베이스 ====================
     database_url: str
+    db_echo: bool = True
     db_pool_size: int = 5
     db_max_overflow: int = 10
-    db_echo: bool = False
     
     # ==================== 환경 ====================
     environment: str = "development"
     debug: bool = True
     
     # ==================== FastAPI ====================
-    app_name: str = "LangChain API"
     api_version: str = "1.0.0"
     
     # ==================== API ====================

@@ -20,12 +20,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # 의존성 파일 복사 및 설치
 COPY requirements.txt .
-RUN pip install  --use-deprecated=legacy-resolver -r requirements.txt
+RUN pip install --use-deprecated=legacy-resolver -r requirements.txt
+RUN playwright install --with-deps chromium
 
 # 소스 코드 복사
 COPY . .
 
-RUN playwright install
 # FastAPI 실행 (Uvicorn 사용)
 # K8s 연동을 위해 호스트를 0.0.0.0으로 설정
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
