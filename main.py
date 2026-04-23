@@ -40,11 +40,14 @@ async def create_item(item: Item):
     return item
 
 @app.post("/analyze-stock-items/")
-async def create_stock_items(db: AsyncSession = Depends(get_db)):
-    import asyncio
-    # 종목 당 분석 수행Y
-
-    analyzer = AnalyzeStockItemByOne(ticker="005930")
-    await analyzer.crawl_naver_stockinfobyone_naver(db)
-
-    return {}
+async def analyze_stock_items(items: List[StockItem], db: AsyncSession = Depends(get_db)):
+    results = []
+    for item in items:
+        # 요청받은 ticker를 사용하여 데이터 가져오기 
+        analyzer = AnalyzeStockItemByOne(ticker=item.ticker)
+        infos = await analyzer.crawl_naver_stockinfobyone_naver(db)
+        if infos:
+            res = await analyzer.RAG_pipeline_domestic(infos)
+            results.append({"ticker": item.ticker, "analysis": res})
+    
+    return results

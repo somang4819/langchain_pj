@@ -1,5 +1,7 @@
+from pydantic import BaseModel, Field
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship, declarative_base
+from typing import Literal
 
 Base = declarative_base()
 
@@ -46,3 +48,23 @@ class StockIndicatorTable(Base):
 
     # 관계 설정
     parent_list = relationship("StockIndicatorListTable", back_populates="holdings")
+
+class StockItem(BaseModel):
+    name: str
+    ticker: str
+    quantity: str
+    value: str
+    type: str
+    recommendation: str
+    is_etf: str
+
+class TradeDecision(BaseModel):
+    decision: Literal["BUY", "SELL", "HOLD"] = Field(
+        description="매수(BUY), 매도(SELL), 보유(HOLD) 중 하나"
+    )
+    confidence: float = Field(
+        ge=0, le=1, description="판단 신뢰도 (0~1)"
+    )
+    reason: str = Field(
+        description="판단 이유 (한 문장)"
+    )
